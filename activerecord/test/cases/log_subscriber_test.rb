@@ -188,6 +188,17 @@ class LogSubscriberTest < ActiveRecord::TestCase
     assert_match(/#{REGEXP_BOLD}#{REGEXP_MAGENTA} \(0\.9ms\)#{REGEXP_CLEAR}  #{REGEXP_BOLD}#{SQL_COLORINGS[:LOCK]}.*LOCK TABLE.*#{REGEXP_CLEAR}/mi, logger.debugs.last)
   end
 
+  def test_sql_is_logged_uncolorized_when_sql_coloration_times_out
+    logger = TestDebugLogSubscriber.new
+    ActiveSupport.colorize_logging = true
+    def logger.sql_color(sql)
+      raise Regexp::TimeoutError
+    end
+    logger.sql({ payload: { sql: "SELECT * FROM users", duration_ms: 0.9 } })
+    assert_includes logger.debugs.last, "SELECT * FROM users"
+    assert_no_match(/#{REGEXP_BOLD}#{SQL_COLORINGS[:SELECT]}/i, logger.debugs.last)
+  end
+
   def test_exists_query_logging
     Developer.exists? 1
     assert_equal 1, @logger.logged(:debug).size

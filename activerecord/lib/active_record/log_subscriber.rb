@@ -42,7 +42,13 @@ module ActiveRecord
       end
 
       name = colorize_payload_name(name, payload[:name])
-      sql  = color(sql, sql_color(sql), bold: true) if colorize_logging
+      if colorize_logging
+        begin
+          sql = color(sql, sql_color(sql), bold: true)
+        rescue Regexp::TimeoutError
+          # Leave sql uncolorized so the log line is still emitted.
+        end
+      end
 
       debug "  #{name}  #{sql}#{binds}"
     end
